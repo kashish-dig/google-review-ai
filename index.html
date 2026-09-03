@@ -471,7 +471,119 @@ let selectedRating = 0;
 let selectedService = "";
 
 let businessData = {};
+async function loadBusinessFromQR() {
 
+    const params = new URLSearchParams(window.location.search);
+    const businessId = params.get("business");
+
+    if (!businessId) {
+        return;
+    }
+
+    const status = document.getElementById("analysisStatus");
+
+    if (status) {
+        status.style.display = "block";
+        status.textContent = "Loading business information...";
+    }
+
+    try {
+
+        const response = await fetch(
+            "https://google-review-ai-lac.vercel.app/api/business?id=" +
+            encodeURIComponent(businessId)
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(
+                data.error || "Business could not be loaded."
+            );
+        }
+
+        const business = data.business;
+
+        // Store business information
+        businessData = {
+            id: business.business_id,
+            name: business.business_name,
+            website: business.website || "",
+            industry: business.industry || "",
+            location: business.location || "",
+            services: business.services || "",
+            reviewLink: business.google_review_link || ""
+        };
+
+        // Fill Step 1 fields
+        document.getElementById("businessName").value =
+            businessData.name;
+
+        document.getElementById("website").value =
+            businessData.website;
+
+        document.getElementById("location").value =
+            businessData.location;
+
+        document.getElementById("services").value =
+            businessData.services;
+
+        // Fill industry dropdown
+        const industrySelect =
+            document.getElementById("industry");
+
+        let matchingOption =
+            Array.from(industrySelect.options).find(
+                option =>
+                    option.value.toLowerCase() ===
+                    businessData.industry.toLowerCase()
+            );
+
+        if (!matchingOption && businessData.industry) {
+
+            const newOption =
+                document.createElement("option");
+
+            newOption.value =
+                businessData.industry;
+
+            newOption.textContent =
+                businessData.industry;
+
+            industrySelect.appendChild(newOption);
+
+            matchingOption = newOption;
+        }
+
+        if (matchingOption) {
+            industrySelect.value =
+                matchingOption.value;
+        }
+
+        // Fill Google Review Link
+        document.getElementById("reviewLink").value =
+            businessData.reviewLink;
+
+        if (status) {
+            status.style.display = "block";
+            status.textContent =
+                "✓ Business information loaded.";
+        }
+
+    } catch (error) {
+
+        console.error(
+            "QR business loading error:",
+            error
+        );
+
+        if (status) {
+            status.style.display = "block";
+            status.textContent =
+                "Unable to load this business.";
+        }
+    }
+}
 async function analyzeBusiness() {
 
     const website = document.getElementById("website").value.trim();
@@ -1050,7 +1162,7 @@ function escapeAttribute(text) {
         .replace(/</g, "&lt;")
         .replace(/>/g, "&gt;");
 }
-
+loadBusinessFromQR();
 </script>
 
 </body>
