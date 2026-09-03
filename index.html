@@ -590,6 +590,7 @@ async function loadBusinessFromQR() {
 // Automatically start customer experience
 setTimeout(() => {
     startExperience();
+    generateQRCode();
     document.documentElement.classList.add("qr-ready");
 }, 300);
 
