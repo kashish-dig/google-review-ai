@@ -3,34 +3,345 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <title>Google Review Assistant</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f5f7fb;
+            color: #202124;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 520px;
+            margin: 0 auto;
+            padding: 30px 20px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 18px;
+            padding: 30px 24px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+        }
+
+        .business-name {
+            text-align: center;
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 8px;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 28px;
+            margin: 10px 0;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            line-height: 1.5;
+            margin-bottom: 30px;
+        }
+
+        .section-title {
+            font-size: 17px;
+            font-weight: bold;
+            margin-bottom: 14px;
+        }
+
+        .stars {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 30px;
+        }
+
+        .star {
+            border: none;
+            background: transparent;
+            font-size: 36px;
+            cursor: pointer;
+            opacity: 0.35;
+            transition: 0.2s;
+        }
+
+        .star:hover {
+            transform: scale(1.1);
+        }
+
+        .star.selected {
+            opacity: 1;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 130px;
+            padding: 14px;
+            border: 1px solid #ddd;
+            border-radius: 12px;
+            resize: vertical;
+            font-size: 15px;
+            font-family: inherit;
+            outline: none;
+        }
+
+        textarea:focus {
+            border-color: #4285f4;
+        }
+
+        .generate-button {
+            width: 100%;
+            margin-top: 18px;
+            padding: 14px;
+            border: none;
+            border-radius: 10px;
+            background: #4285f4;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .generate-button:hover {
+            background: #3367d6;
+        }
+
+        .result {
+            display: none;
+            margin-top: 25px;
+            padding: 20px;
+            border-radius: 12px;
+            background: #f1f6ff;
+        }
+
+        .result h2 {
+            font-size: 18px;
+            margin-top: 0;
+        }
+
+        .review-box {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            line-height: 1.6;
+            margin-top: 12px;
+        }
+
+        .copy-button {
+            margin-top: 12px;
+            padding: 10px 15px;
+            border: 1px solid #4285f4;
+            background: white;
+            color: #4285f4;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .message {
+            text-align: center;
+            color: #d93025;
+            font-size: 14px;
+            margin-top: 12px;
+        }
+
+        .footer {
+            text-align: center;
+            font-size: 12px;
+            color: #777;
+            margin-top: 20px;
+        }
+    </style>
 </head>
 
 <body>
 
-    <h1>How was your experience?</h1>
+    <div class="container">
 
-    <p>Share your experience with us.</p>
+        <div class="card">
 
-    <h2>Give us a rating</h2>
+            <div class="business-name">
+                YOUR BUSINESS NAME
+            </div>
 
-    <button>⭐ 1</button>
-    <button>⭐ 2</button>
-    <button>⭐ 3</button>
-    <button>⭐ 4</button>
-    <button>⭐ 5</button>
+            <h1>How was your experience?</h1>
 
-    <h2>Tell us about your experience</h2>
+            <p class="subtitle">
+                We'd love to hear about your experience.
+                Share your honest feedback below.
+            </p>
 
-    <textarea
-        rows="6"
-        cols="40"
-        placeholder="Write about your experience..."
-    ></textarea>
+            <div class="section-title">
+                1. Give us a rating
+            </div>
 
-    <br><br>
+            <div class="stars">
 
-    <button>Generate Review</button>
+                <button class="star" onclick="selectRating(1)">★</button>
+                <button class="star" onclick="selectRating(2)">★</button>
+                <button class="star" onclick="selectRating(3)">★</button>
+                <button class="star" onclick="selectRating(4)">★</button>
+                <button class="star" onclick="selectRating(5)">★</button>
+
+            </div>
+
+            <div class="section-title">
+                2. Tell us about your experience
+            </div>
+
+            <textarea
+                id="feedback"
+                placeholder="For example: The staff was friendly and the service was quick..."
+            ></textarea>
+
+            <button class="generate-button" onclick="generateReview()">
+                Create Review Draft
+            </button>
+
+            <div id="message" class="message"></div>
+
+            <div id="result" class="result">
+
+                <h2>Your review draft</h2>
+
+                <div id="reviewText" class="review-box"></div>
+
+                <button class="copy-button" onclick="copyReview()">
+                    Copy Review
+                </button>
+
+            </div>
+
+        </div>
+
+        <div class="footer">
+            Your feedback should reflect your genuine experience.
+        </div>
+
+    </div>
+
+
+    <script>
+
+        let selectedRating = 0;
+
+
+        function selectRating(rating) {
+
+            selectedRating = rating;
+
+            const stars = document.querySelectorAll(".star");
+
+            stars.forEach((star, index) => {
+
+                if (index < rating) {
+                    star.classList.add("selected");
+                } else {
+                    star.classList.remove("selected");
+                }
+
+            });
+
+            document.getElementById("message").textContent = "";
+
+        }
+
+
+        function generateReview() {
+
+            const feedback =
+                document.getElementById("feedback").value.trim();
+
+            const message =
+                document.getElementById("message");
+
+            const result =
+                document.getElementById("result");
+
+            const reviewText =
+                document.getElementById("reviewText");
+
+
+            if (selectedRating === 0) {
+
+                message.textContent =
+                    "Please select a rating first.";
+
+                return;
+            }
+
+
+            if (feedback.length < 10) {
+
+                message.textContent =
+                    "Please tell us a little more about your experience.";
+
+                return;
+            }
+
+
+            let opening = "";
+
+            if (selectedRating >= 4) {
+
+                opening =
+                    "I had a positive experience here. ";
+
+            } else if (selectedRating === 3) {
+
+                opening =
+                    "I had an overall okay experience. ";
+
+            } else {
+
+                opening =
+                    "I wanted to share my honest experience. ";
+
+            }
+
+
+            const review =
+                opening + feedback;
+
+
+            reviewText.textContent = review;
+
+            result.style.display = "block";
+
+            message.textContent = "";
+
+        }
+
+
+        function copyReview() {
+
+            const review =
+                document.getElementById("reviewText").textContent;
+
+            navigator.clipboard.writeText(review);
+
+            const button =
+                document.querySelector(".copy-button");
+
+            button.textContent = "Copied!";
+
+            setTimeout(() => {
+
+                button.textContent = "Copy Review";
+
+            }, 2000);
+
+        }
+
+    </script>
 
 </body>
 </html>
