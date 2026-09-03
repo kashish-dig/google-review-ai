@@ -507,13 +507,65 @@ async function analyzeBusiness() {
             throw new Error(data.error || "Something went wrong.");
         }
 
+        // Fill Business Name
+        if (data.businessName) {
+            document.getElementById("businessName").value =
+                data.businessName;
+        }
+
+        // Fill Industry
+        if (data.industry) {
+
+            const industrySelect =
+                document.getElementById("industry");
+
+            let matchingOption = Array.from(
+                industrySelect.options
+            ).find(
+                option =>
+                    option.value.toLowerCase() ===
+                    data.industry.toLowerCase()
+            );
+
+            if (!matchingOption) {
+
+                const newOption =
+                    document.createElement("option");
+
+                newOption.value = data.industry;
+                newOption.textContent =
+                    data.industry;
+
+                industrySelect.appendChild(newOption);
+
+                matchingOption = newOption;
+            }
+
+            industrySelect.value =
+                matchingOption.value;
+        }
+
+        // Fill Location
+        if (data.location) {
+            document.getElementById("location").value =
+                data.location;
+        }
+
+        // Fill Services
+        if (data.services) {
+            document.getElementById("services").value =
+                data.services;
+        }
+
+        status.style.display = "block";
         status.textContent =
-            "✓ Website connected successfully: " + data.website;
+            "✓ Business information analyzed successfully.";
 
     } catch (error) {
 
+        status.style.display = "block";
         status.textContent =
-            "Unable to connect to the business analyzer. Please try again.";
+            "Unable to analyze this website. Please try again.";
 
         console.error(error);
     }
