@@ -270,13 +270,13 @@ textarea {
 }
 </style>
     <style>
-    /* Hide business setup immediately for QR visitors */
-    .qr-mode #businessStep {
-        display: none !important;
+    /* Prevent any setup-page flash for QR visitors */
+    .qr-mode body {
+        visibility: hidden;
     }
 
-    .qr-mode #experienceStep {
-        display: block !important;
+    .qr-mode.qr-ready body {
+        visibility: visible;
     }
 </style>
 
@@ -589,6 +589,7 @@ async function loadBusinessFromQR() {
 // Automatically start customer experience
 setTimeout(() => {
     startExperience();
+    document.documentElement.classList.add("qr-ready");
 }, 300);
 
     } catch (error) {
@@ -603,6 +604,7 @@ setTimeout(() => {
             status.textContent =
                 "Unable to load this business.";
         }
+        document.documentElement.classList.add("qr-ready");
     }
 }
 async function analyzeBusiness() {
