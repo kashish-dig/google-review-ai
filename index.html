@@ -647,7 +647,7 @@ async function analyzeBusiness() {
         if (!response.ok) {
             throw new Error(data.error || "Something went wrong.");
         }
-
+businessData.id = data.businessId || "";
         // Fill Business Name
         if (data.businessName) {
             document.getElementById("businessName").value =
