@@ -63,9 +63,15 @@ export default async function handler(req, res) {
             });
         }
 
-        const response = await fetch(url.toString(), {
+        // Normalize website URL
+        const normalizedWebsite =
+            url.toString().replace(/\/$/, "");
+
+        // Fetch website
+        const response = await fetch(normalizedWebsite, {
             headers: {
-                "User-Agent": "Mozilla/5.0 (compatible; ReviewAssistant/1.0)"
+                "User-Agent":
+                    "Mozilla/5.0 (compatible; ReviewAssistant/1.0)"
             }
         });
 
@@ -77,6 +83,7 @@ export default async function handler(req, res) {
 
         const html = await response.text();
 
+        // Extract readable text
         const text = html
             .replace(/<script[\s\S]*?<\/script>/gi, " ")
             .replace(/<style[\s\S]*?<\/style>/gi, " ")
@@ -93,10 +100,12 @@ export default async function handler(req, res) {
 
         if (text.length < 100) {
             return res.status(422).json({
-                error: "Not enough readable information was found on this website."
+                error:
+                    "Not enough readable information was found on this website."
             });
         }
 
+        // Ask Groq to extract business information
         const groqResponse = await fetch(
             "https://api.groq.com/openai/v1/chat/completions",
             {
@@ -104,7 +113,8 @@ export default async function handler(req, res) {
 
                 headers: {
                     "Content-Type": "application/json",
-                    "Authorization": `Bearer ${process.env.GROQ_API_KEY}`
+                    "Authorization":
+                        `Bearer ${process.env.GROQ_API_KEY}`
                 },
 
                 body: JSON.stringify({
@@ -146,7 +156,7 @@ Extract the following information from this website:
 4. Main services
 
 Website URL:
-${url.toString()}
+${normalizedWebsite}
 
 Website content:
 ${text}
@@ -227,14 +237,214 @@ ${text}
 
         const result = JSON.parse(content);
 
-        return res.status(200).json(result);
+        // ------------------------------------------------
+        // SAVE BUSINESS TO SUPABASE
+        // ------------------------------------------------
+
+        const supabaseUrl =
+            process.env.SUPABASE_URL;
+
+        const supabaseSecretKey =
+            process.env.SUPABASE_SECRET_KEY;
+
+        if (!supabaseUrl || !supabaseSecretKey) {
+
+            console.error(
+                "Supabase environment variables are missing."
+            );
+
+            return res.status(500).json({
+                error: "Database configuration is missing."
+            });
+        }
+
+        const supabaseHeaders = {
+            "Content-Type": "application/json",
+            "apikey": supabaseSecretKey
+        };
+
+        // Check if this website already exists
+        const existingResponse = await fetch(
+            `${supabaseUrl}/rest/v1/businesses?select=business_id&website=eq.${encodeURIComponent(normalizedWebsite)}&limit=1`,
+            {
+                method: "GET",
+                headers: supabaseHeaders
+            }
+        );
+
+        const existingBusinesses =
+            await existingResponse.json();
+
+        if (!existingResponse.ok) {
+
+            console.error(
+                "Supabase lookup error:",
+                existingBusinesses
+            );
+
+            return res.status(500).json({
+                error: "Unable to access business database."
+            });
+        }
+
+        let businessId;
+
+        // Existing business
+        if (
+            Array.isArray(existingBusinesses) &&
+            existingBusinesses.length > 0
+        ) {
+
+            businessId =
+                existingBusinesses[0].business_id;
+
+            const updateResponse = await fetch(
+                `${supabaseUrl}/rest/v1/businesses?business_id=eq.${encodeURIComponent(businessId)}`,
+                {
+                    method: "PATCH",
+
+                    headers: {
+                        ...supabaseHeaders,
+                        "Prefer": "return=minimal"
+                    },
+
+                    body: JSON.stringify({
+
+                        business_name:
+                            result.businessName,
+
+                        website:
+                            normalizedWebsite,
+
+                        industry:
+                            result.industry,
+
+                        location:
+                            result.location,
+
+                        services:
+                            result.services
+
+                    })
+                }
+            );
+
+            if (!updateResponse.ok) {
+
+                const updateError =
+                    await updateResponse.text();
+
+                console.error(
+                    "Supabase update error:",
+                    updateError
+                );
+
+                return res.status(500).json({
+                    error:
+                        "Unable to update business information."
+                });
+            }
+
+        }
+
+        // New business
+        else {
+
+            const baseName =
+                (result.businessName || "business")
+                    .toLowerCase()
+                    .replace(/[^a-z0-9]+/g, "-")
+                    .replace(/^-+|-+$/g, "")
+                    .slice(0, 40);
+
+            const randomPart =
+                crypto.randomUUID()
+                    .replace(/-/g, "")
+                    .slice(0, 6);
+
+            businessId =
+                `${baseName || "business"}-${randomPart}`;
+
+            const insertResponse = await fetch(
+                `${supabaseUrl}/rest/v1/businesses`,
+                {
+                    method: "POST",
+
+                    headers: {
+                        ...supabaseHeaders,
+                        "Prefer": "return=minimal"
+                    },
+
+                    body: JSON.stringify({
+
+                        business_id:
+                            businessId,
+
+                        business_name:
+                            result.businessName,
+
+                        website:
+                            normalizedWebsite,
+
+                        industry:
+                            result.industry,
+
+                        location:
+                            result.location,
+
+                        services:
+                            result.services
+
+                    })
+                }
+            );
+
+            if (!insertResponse.ok) {
+
+                const insertError =
+                    await insertResponse.text();
+
+                console.error(
+                    "Supabase insert error:",
+                    insertError
+                );
+
+                return res.status(500).json({
+                    error:
+                        "Unable to save business information."
+                });
+            }
+        }
+
+        // Return extracted information + Business ID
+        return res.status(200).json({
+
+            businessId: businessId,
+
+            businessName:
+                result.businessName,
+
+            industry:
+                result.industry,
+
+            location:
+                result.location,
+
+            services:
+                result.services
+
+        });
 
     } catch (error) {
 
-        console.error("Analyze error:", error);
+        console.error(
+            "Analyze error:",
+            error
+        );
 
         return res.status(500).json({
-            error: "Something went wrong while analyzing the website."
+            error:
+                "Something went wrong while analyzing the website."
         });
     }
 }
