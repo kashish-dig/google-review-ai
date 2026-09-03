@@ -1190,6 +1190,99 @@ function escapeAttribute(text) {
 }
 loadBusinessFromQR();
 </script>
+<!-- QR CODE GENERATOR -->
+
+<div id="qrGenerator" style="display:none; margin-top:40px; padding:30px; background:#f8fafc; border-radius:16px; text-align:center;">
+
+    <h2>Business QR Code</h2>
+
+    <p style="color:#64748b;">
+        Customers can scan this QR code to open your review experience.
+    </p>
+
+    <div
+        id="qrcode"
+        style="display:flex; justify-content:center; margin:25px 0;">
+    </div>
+
+    <p
+        id="qrUrl"
+        style="font-size:13px; word-break:break-all; color:#475569;">
+    </p>
+
+    <button
+        type="button"
+        onclick="downloadQRCode()"
+        style="margin-top:15px;">
+        Download QR Code
+    </button>
+
+</div>
+</div>
+
+<script>
+    function generateQRCode() {
+
+        if (!businessData || !businessData.id) {
+            alert("Business information is not available.");
+            return;
+        }
+
+        const qrContainer = document.getElementById("qrcode");
+        const qrGenerator = document.getElementById("qrGenerator");
+        const qrUrl = document.getElementById("qrUrl");
+
+        const reviewUrl =
+            window.location.origin +
+            window.location.pathname +
+            "?business=" +
+            encodeURIComponent(businessData.id);
+
+        qrContainer.innerHTML = "";
+
+        new QRCode(qrContainer, {
+            text: reviewUrl,
+            width: 220,
+            height: 220
+        });
+
+        qrUrl.textContent = reviewUrl;
+
+        qrGenerator.style.display = "block";
+    }
+
+    function downloadQRCode() {
+
+        const qrContainer = document.getElementById("qrcode");
+
+        const canvas = qrContainer.querySelector("canvas");
+        const image = qrContainer.querySelector("img");
+
+        let downloadUrl = "";
+
+        if (canvas) {
+            downloadUrl = canvas.toDataURL("image/png");
+        } else if (image) {
+            downloadUrl = image.src;
+        } else {
+            alert("QR code is not ready yet.");
+            return;
+        }
+
+        const link = document.createElement("a");
+
+        link.href = downloadUrl;
+        link.download =
+            (businessData.name || "business") + "-QR-Code.png";
+
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    generateQRCode();
+</script>
 
 </body>
 </html>
+    
