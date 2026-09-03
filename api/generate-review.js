@@ -30,56 +30,64 @@ export default async function handler(req, res) {
                 body: JSON.stringify({
                     model: "openai/gpt-oss-20b",
 
+                    reasoning_effort: "low",
+
                     messages: [
                         {
                             role: "system",
                             content: `
 You are an AI review-writing assistant.
 
-Create natural Google review drafts from the customer's own genuine experience.
+Turn the customer's own genuine experience into three natural, editable Google review drafts.
 
 Rules:
-- Use ONLY facts provided by the customer.
-- Never invent details.
-- Never add services, staff names, results, prices, locations or claims that the customer did not provide.
-- Keep the customer's meaning.
-- Do not manipulate the customer's rating.
-- Do not encourage a positive review.
-- Make each draft sound natural and different from the others.
-- Keep each draft between 40 and 80 words.
-- The customer must be able to edit the draft before posting.
+- Use ONLY information supplied by the customer.
+- Never invent facts, results, names, prices, locations or claims.
+- Keep the customer's meaning and rating.
+- Do not exaggerate.
+- Do not create fake experiences.
+- Make the three drafts naturally different.
+- Keep each draft between 30 and 80 words.
 `
                         },
                         {
                             role: "user",
                             content: `
 Business: ${businessName}
-Rating given by customer: ${rating}/5
-Service: ${service || "Not specified"}
+Customer rating: ${rating}/5
+Service used: ${service || "Not specified"}
 
 Customer's genuine experience:
 ${feedback}
 
-Create exactly 3 different review drafts.
-
-Return ONLY valid JSON in this format:
-{
-  "drafts": [
-    "draft 1",
-    "draft 2",
-    "draft 3"
-  ]
-}
+Create exactly three different review drafts.
 `
                         }
                     ],
 
                     response_format: {
-                        type: "json_object"
+                        type: "json_schema",
+                        json_schema: {
+                            name: "review_drafts",
+                            strict: true,
+                            schema: {
+                                type: "object",
+                                properties: {
+                                    drafts: {
+                                        type: "array",
+                                        items: {
+                                            type: "string"
+                                        }
+                                    }
+                                },
+                                required: ["drafts"],
+                                additionalProperties: false
+                            }
+                        }
                     },
 
                     temperature: 0.8,
-                    max_completion_tokens: 500
+                    max_completion_tokens: 1000
                 })
             }
         );
@@ -104,6 +112,15 @@ Return ONLY valid JSON in this format:
         }
 
         const result = JSON.parse(content);
+
+        if (
+            !Array.isArray(result.drafts) ||
+            result.drafts.length !== 3
+        ) {
+            return res.status(500).json({
+                error: "AI returned an invalid number of drafts."
+            });
+        }
 
         return res.status(200).json(result);
 
