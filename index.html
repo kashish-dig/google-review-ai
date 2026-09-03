@@ -736,80 +736,129 @@ function selectRating(rating) {
 
 /* GENERATE DRAFTS */
 
-function generateDrafts() {
+async function generateDrafts() {
 
     const feedback =
         document.getElementById("feedback").value.trim();
 
     if (selectedRating === 0 || feedback.length < 10) {
-
         document.getElementById("experienceError").style.display = "block";
-
         return;
     }
 
     document.getElementById("experienceError").style.display = "none";
-
-    const drafts = createDrafts(feedback);
 
     const container =
         document.getElementById("draftContainer");
 
     container.innerHTML = `
         <div class="drafts">
-
-            <h3>Your Review Drafts</h3>
-
-            ${drafts.map((draft, index) => `
-
-                <div class="draft">
-
-                    <div class="draft-number">
-                        OPTION ${index + 1}
-                    </div>
-
-                    <div class="draft-text">
-                        ${escapeHtml(draft)}
-                    </div>
-
-                    <button
-                        class="copy-button"
-                        onclick="copyDraft(this, ${index})">
-                        Copy Review
-                    </button>
-
-                </div>
-
-            `).join("")}
-
-            ${
-                businessData.reviewLink
-                ?
-                `
-                <a
-                    href="${escapeAttribute(businessData.reviewLink)}"
-                    target="_blank"
-                    style="text-decoration:none;"
-                >
-                    <button
-                        class="button"
-                        style="margin-top:10px;">
-                        Continue to Google Reviews →
-                    </button>
-                </a>
-                `
-                :
-                ""
-            }
-
+            <h3>Creating your review drafts...</h3>
+            <p style="color:#667085;">
+                AI is turning your genuine experience into natural,
+                editable drafts.
+            </p>
         </div>
     `;
 
-    window.generatedDrafts = drafts;
+    try {
 
-    container.scrollIntoView({
-        behavior: "smooth"
-    });
+        const response = await fetch(
+            "https://google-review-ai-lac.vercel.app/api/generate-review",
+            {
+                method: "POST",
+
+                headers: {
+                    "Content-Type": "application/json"
+                },
+
+                body: JSON.stringify({
+                    businessName: businessData.name,
+                    rating: selectedRating,
+                    service: selectedService,
+                    feedback: feedback
+                })
+            }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.error || "AI generation failed.");
+        }
+
+        const drafts = data.drafts;
+
+        if (!Array.isArray(drafts) || drafts.length !== 3) {
+            throw new Error("AI returned an invalid response.");
+        }
+
+        container.innerHTML = `
+            <div class="drafts">
+
+                <h3>Your AI Review Drafts</h3>
+
+                ${drafts.map((draft, index) => `
+
+                    <div class="draft">
+
+                        <div class="draft-number">
+                            OPTION ${index + 1}
+                        </div>
+
+                        <div class="draft-text">
+                            ${escapeHtml(draft)}
+                        </div>
+
+                        <button
+                            class="copy-button"
+                            onclick="copyDraft(this, ${index})">
+                            Copy Review
+                        </button>
+
+                    </div>
+
+                `).join("")}
+
+                ${
+                    businessData.reviewLink
+                    ?
+                    `
+                    <a
+                        href="${escapeAttribute(businessData.reviewLink)}"
+                        target="_blank"
+                        style="text-decoration:none;"
+                    >
+                        <button
+                            class="button"
+                            style="margin-top:10px;">
+                            Continue to Google Reviews →
+                        </button>
+                    </a>
+                    `
+                    :
+                    ""
+                }
+
+            </div>
+        `;
+
+        window.generatedDrafts = drafts;
+
+        container.scrollIntoView({
+            behavior: "smooth"
+        });
+
+    } catch (error) {
+
+        console.error(error);
+
+        container.innerHTML = `
+            <div class="error" style="display:block;">
+                Unable to generate AI drafts. Please try again.
+            </div>
+        `;
+    }
 }
 
 
