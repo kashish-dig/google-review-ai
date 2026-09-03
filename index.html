@@ -308,11 +308,39 @@ textarea {
     >
 
     <label>Business Website</label>
+
+<div style="display:flex; gap:10px; margin-bottom:20px;">
+
     <input
         type="url"
         id="website"
         placeholder="https://example.com"
+        style="margin-bottom:0;"
     >
+
+    <button
+        type="button"
+        class="button"
+        style="width:auto; white-space:nowrap;"
+        onclick="analyzeBusiness()"
+    >
+        Analyze
+    </button>
+
+</div>
+
+<div
+    id="analysisStatus"
+    style="
+        display:none;
+        margin:-8px 0 20px;
+        padding:12px;
+        border-radius:10px;
+        background:#f2f4f7;
+        color:#475467;
+        font-size:14px;
+    "
+></div>
 
     <label>Industry</label>
     <select id="industry">
@@ -444,7 +472,52 @@ let selectedService = "";
 
 let businessData = {};
 
+async function analyzeBusiness() {
 
+    const website = document.getElementById("website").value.trim();
+    const status = document.getElementById("analysisStatus");
+
+    if (!website) {
+        status.style.display = "block";
+        status.textContent = "Please enter a business website first.";
+        return;
+    }
+
+    status.style.display = "block";
+    status.textContent = "Analyzing business website...";
+
+    try {
+
+        const response = await fetch(
+            "https://google-review-ai-lac.vercel.app/api/analyze",
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    website: website
+                })
+            }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.error || "Something went wrong.");
+        }
+
+        status.textContent =
+            "✓ Website connected successfully: " + data.website;
+
+    } catch (error) {
+
+        status.textContent =
+            "Unable to connect to the business analyzer. Please try again.";
+
+        console.error(error);
+    }
+}
 /* START CUSTOMER EXPERIENCE */
 
 function startExperience() {
