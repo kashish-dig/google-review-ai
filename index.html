@@ -767,11 +767,9 @@ async function generateDrafts() {
             "https://google-review-ai-lac.vercel.app/api/generate-review",
             {
                 method: "POST",
-
                 headers: {
                     "Content-Type": "application/json"
                 },
-
                 body: JSON.stringify({
                     businessName: businessData.name,
                     rating: selectedRating,
@@ -806,9 +804,21 @@ async function generateDrafts() {
                             OPTION ${index + 1}
                         </div>
 
-                        <div class="draft-text">
-                            ${escapeHtml(draft)}
-                        </div>
+                        <textarea
+                            id="draft-${index}"
+                            style="
+                                width:100%;
+                                min-height:120px;
+                                padding:12px;
+                                border:1px solid #d0d5dd;
+                                border-radius:10px;
+                                font-size:15px;
+                                line-height:1.6;
+                                resize:vertical;
+                                margin-bottom:10px;
+                                font-family:Arial, Helvetica, sans-serif;
+                            "
+                        >${escapeHtml(draft)}</textarea>
 
                         <button
                             class="copy-button"
@@ -860,7 +870,6 @@ async function generateDrafts() {
         `;
     }
 }
-
 
 /* TEMPORARY DRAFT GENERATOR */
 
@@ -928,16 +937,21 @@ function createDrafts(feedback) {
 
 function copyDraft(button, index) {
 
-    const text = window.generatedDrafts[index];
+    const textarea =
+        document.getElementById("draft-" + index);
+
+    const text = textarea.value.trim();
+
+    if (!text) {
+        return;
+    }
 
     navigator.clipboard.writeText(text);
 
     button.textContent = "Copied ✓";
 
     setTimeout(() => {
-
         button.textContent = "Copy Review";
-
     }, 1500);
 }
 
