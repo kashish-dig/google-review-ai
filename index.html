@@ -515,6 +515,7 @@ async function loadBusinessFromQR() {
         );
 
         const data = await response.json();
+        businessData.id = data.businessId || "";
 
         if (!response.ok) {
             throw new Error(
