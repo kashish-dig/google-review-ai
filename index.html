@@ -407,7 +407,7 @@ textarea {
         </div>
     </div>
 
-    <h2>How was your experience?</h2>
+    <h2 id="experienceTitle">How was your experience?</h2>
 
     <p style="color:#667085;">
         Please share your genuine experience. Your feedback
@@ -565,10 +565,15 @@ async function loadBusinessFromQR() {
             businessData.reviewLink;
 
         if (status) {
-            status.style.display = "block";
-            status.textContent =
-                "✓ Business information loaded.";
-        }
+    status.style.display = "block";
+    status.textContent =
+        "✓ Business information loaded.";
+}
+
+// Automatically start customer experience
+setTimeout(() => {
+    startExperience();
+}, 300);
 
     } catch (error) {
 
@@ -704,6 +709,7 @@ function startExperience() {
     document.getElementById("businessError").style.display = "none";
 
     businessData = {
+    id: businessData.id || "",
         name,
         website: document.getElementById("website").value.trim(),
         industry,
@@ -716,7 +722,8 @@ function startExperience() {
 
     document.getElementById("displayMeta").textContent =
         industry + (location ? " • " + location : "");
-
+document.getElementById("experienceTitle").textContent =
+    "How was your experience with " + name + "?";
     createServiceOptions(services);
 
     document.getElementById("businessStep").classList.remove("active");
