@@ -1,5 +1,6 @@
 export default async function handler(req, res) {
 
+    // Only allow POST requests
     if (req.method !== "POST") {
         return res.status(405).json({
             error: "Method not allowed"
@@ -8,7 +9,8 @@ export default async function handler(req, res) {
 
     try {
 
-        const { website } = req.body;
+        // Get website from request
+        const { website } = req.body || {};
 
         if (!website) {
             return res.status(400).json({
@@ -16,6 +18,7 @@ export default async function handler(req, res) {
             });
         }
 
+        // Validate URL
         let url;
 
         try {
@@ -26,12 +29,14 @@ export default async function handler(req, res) {
             });
         }
 
+        // Only allow HTTP and HTTPS
         if (!["http:", "https:"].includes(url.protocol)) {
             return res.status(400).json({
                 error: "Only HTTP and HTTPS websites are supported."
             });
         }
 
+        // Block localhost/private network addresses
         const hostname = url.hostname.toLowerCase();
 
         if (
@@ -65,25 +70,28 @@ export default async function handler(req, res) {
 
         // Normalize website URL
         const normalizedWebsite =
-            url.toString().replace(/\/$/, "");
+            url.toString().replace(/\/+$/, "");
 
         // Fetch website
-        const response = await fetch(normalizedWebsite, {
-            headers: {
-                "User-Agent":
-                    "Mozilla/5.0 (compatible; ReviewAssistant/1.0)"
+        const websiteResponse = await fetch(
+            normalizedWebsite,
+            {
+                headers: {
+                    "User-Agent":
+                        "Mozilla/5.0 (compatible; ReviewAssistant/1.0)"
+                }
             }
-        });
+        );
 
-        if (!response.ok) {
+        if (!websiteResponse.ok) {
             return res.status(502).json({
                 error: "Unable to access this website."
             });
         }
 
-        const html = await response.text();
+        const html = await websiteResponse.text();
 
-        // Extract readable text
+        // Convert HTML into readable text
         const text = html
             .replace(/<script[\s\S]*?<\/script>/gi, " ")
             .replace(/<style[\s\S]*?<\/style>/gi, " ")
@@ -105,7 +113,7 @@ export default async function handler(req, res) {
             });
         }
 
-        // Ask Groq to extract business information
+        // Send website information to Groq
         const groqResponse = await fetch(
             "https://api.groq.com/openai/v1/chat/completions",
             {
@@ -217,9 +225,13 @@ ${text}
 
         const groqData = await groqResponse.json();
 
+        // Check Groq response
         if (!groqResponse.ok) {
 
-            console.error("Groq error:", groqData);
+            console.error(
+                "Groq error:",
+                groqData
+            );
 
             return res.status(500).json({
                 error: "Website analysis failed."
@@ -235,131 +247,10 @@ ${text}
             });
         }
 
+        // Convert AI response into JSON
         const result = JSON.parse(content);
 
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_SECRET_KEY;
-
-if (!supabaseUrl || !supabaseKey) {
-    return res.status(500).json({
-        error: "Database configuration is missing."
-    });
-}
-
-const normalizedWebsite = url.toString().replace(/\/+$/, "");
-
-const headers = {
-    "Content-Type": "application/json",
-    "apikey": supabaseKey,
-    "Authorization": `Bearer ${supabaseKey}`
-};
-
-// Check if this business already exists
-const existingResponse = await fetch(
-    `${supabaseUrl}/rest/v1/businesses?select=business_id&website=eq.${encodeURIComponent(normalizedWebsite)}&limit=1`,
-    {
-        method: "GET",
-        headers
-    }
-);
-
-if (!existingResponse.ok) {
-    const errorText = await existingResponse.text();
-    console.error("Supabase lookup error:", errorText);
-
-    return res.status(500).json({
-        error: "Unable to access business database."
-    });
-}
-
-const existingBusinesses = await existingResponse.json();
-
-let businessId;
-
-if (existingBusinesses.length > 0) {
-
-    businessId = existingBusinesses[0].business_id;
-
-    // Update existing business
-    const updateResponse = await fetch(
-        `${supabaseUrl}/rest/v1/businesses?business_id=eq.${encodeURIComponent(businessId)}`,
-        {
-            method: "PATCH",
-            headers,
-            body: JSON.stringify({
-                business_name: result.businessName,
-                website: normalizedWebsite,
-                industry: result.industry,
-                location: result.location,
-                services: result.services
-            })
-        }
-    );
-
-    if (!updateResponse.ok) {
-        const errorText = await updateResponse.text();
-        console.error("Supabase update error:", errorText);
-
-        return res.status(500).json({
-            error: "Unable to save business information."
-        });
-    }
-
-} else {
-
-    // Create a new business ID
-    const baseName =
-        (result.businessName || "business")
-            .toLowerCase()
-            .replace(/[^a-z0-9]+/g, "-")
-            .replace(/^-+|-+$/g, "")
-            .slice(0, 45);
-
-    const suffix =
-        crypto.randomUUID().replace(/-/g, "").slice(0, 6);
-
-    businessId = `${baseName || "business"}-${suffix}`;
-
-    // Save new business
-    const insertResponse = await fetch(
-        `${supabaseUrl}/rest/v1/businesses`,
-        {
-            method: "POST",
-            headers: {
-                ...headers,
-                "Prefer": "return=minimal"
-            },
-            body: JSON.stringify({
-                business_id: businessId,
-                business_name: result.businessName,
-                website: normalizedWebsite,
-                industry: result.industry,
-                location: result.location,
-                services: result.services,
-                google_review_link: ""
-            })
-        }
-    );
-
-    if (!insertResponse.ok) {
-        const errorText = await insertResponse.text();
-        console.error("Supabase insert error:", errorText);
-
-        return res.status(500).json({
-            error: "Unable to save business information."
-        });
-    }
-}
-
-return res.status(200).json({
-    ...result,
-    businessId
-});
-
-        // ------------------------------------------------
-        // SAVE BUSINESS TO SUPABASE
-        // ------------------------------------------------
-
+        // Check Supabase configuration
         const supabaseUrl =
             process.env.SUPABASE_URL;
 
@@ -377,12 +268,13 @@ return res.status(200).json({
             });
         }
 
+        // Supabase REST headers
         const supabaseHeaders = {
             "Content-Type": "application/json",
             "apikey": supabaseSecretKey
         };
 
-        // Check if this website already exists
+        // Check whether this website already exists
         const existingResponse = await fetch(
             `${supabaseUrl}/rest/v1/businesses?select=business_id&website=eq.${encodeURIComponent(normalizedWebsite)}&limit=1`,
             {
@@ -402,7 +294,8 @@ return res.status(200).json({
             );
 
             return res.status(500).json({
-                error: "Unable to access business database."
+                error:
+                    "Unable to access business database."
             });
         }
 
@@ -512,7 +405,10 @@ return res.status(200).json({
                             result.location,
 
                         services:
-                            result.services
+                            result.services,
+
+                        google_review_link:
+                            ""
 
                     })
                 }
@@ -535,10 +431,8 @@ return res.status(200).json({
             }
         }
 
-        // Return extracted information + Business ID
+        // Send result back to frontend
         return res.status(200).json({
-
-            businessId: businessId,
 
             businessName:
                 result.businessName,
@@ -550,7 +444,10 @@ return res.status(200).json({
                 result.location,
 
             services:
-                result.services
+                result.services,
+
+            businessId:
+                businessId
 
         });
 
