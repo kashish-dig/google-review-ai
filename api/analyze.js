@@ -237,6 +237,125 @@ ${text}
 
         const result = JSON.parse(content);
 
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SECRET_KEY;
+
+if (!supabaseUrl || !supabaseKey) {
+    return res.status(500).json({
+        error: "Database configuration is missing."
+    });
+}
+
+const normalizedWebsite = url.toString().replace(/\/+$/, "");
+
+const headers = {
+    "Content-Type": "application/json",
+    "apikey": supabaseKey,
+    "Authorization": `Bearer ${supabaseKey}`
+};
+
+// Check if this business already exists
+const existingResponse = await fetch(
+    `${supabaseUrl}/rest/v1/businesses?select=business_id&website=eq.${encodeURIComponent(normalizedWebsite)}&limit=1`,
+    {
+        method: "GET",
+        headers
+    }
+);
+
+if (!existingResponse.ok) {
+    const errorText = await existingResponse.text();
+    console.error("Supabase lookup error:", errorText);
+
+    return res.status(500).json({
+        error: "Unable to access business database."
+    });
+}
+
+const existingBusinesses = await existingResponse.json();
+
+let businessId;
+
+if (existingBusinesses.length > 0) {
+
+    businessId = existingBusinesses[0].business_id;
+
+    // Update existing business
+    const updateResponse = await fetch(
+        `${supabaseUrl}/rest/v1/businesses?business_id=eq.${encodeURIComponent(businessId)}`,
+        {
+            method: "PATCH",
+            headers,
+            body: JSON.stringify({
+                business_name: result.businessName,
+                website: normalizedWebsite,
+                industry: result.industry,
+                location: result.location,
+                services: result.services
+            })
+        }
+    );
+
+    if (!updateResponse.ok) {
+        const errorText = await updateResponse.text();
+        console.error("Supabase update error:", errorText);
+
+        return res.status(500).json({
+            error: "Unable to save business information."
+        });
+    }
+
+} else {
+
+    // Create a new business ID
+    const baseName =
+        (result.businessName || "business")
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, "-")
+            .replace(/^-+|-+$/g, "")
+            .slice(0, 45);
+
+    const suffix =
+        crypto.randomUUID().replace(/-/g, "").slice(0, 6);
+
+    businessId = `${baseName || "business"}-${suffix}`;
+
+    // Save new business
+    const insertResponse = await fetch(
+        `${supabaseUrl}/rest/v1/businesses`,
+        {
+            method: "POST",
+            headers: {
+                ...headers,
+                "Prefer": "return=minimal"
+            },
+            body: JSON.stringify({
+                business_id: businessId,
+                business_name: result.businessName,
+                website: normalizedWebsite,
+                industry: result.industry,
+                location: result.location,
+                services: result.services,
+                google_review_link: ""
+            })
+        }
+    );
+
+    if (!insertResponse.ok) {
+        const errorText = await insertResponse.text();
+        console.error("Supabase insert error:", errorText);
+
+        return res.status(500).json({
+            error: "Unable to save business information."
+        });
+    }
+}
+
+return res.status(200).json({
+    ...result,
+    businessId
+});
+
         // ------------------------------------------------
         // SAVE BUSINESS TO SUPABASE
         // ------------------------------------------------
