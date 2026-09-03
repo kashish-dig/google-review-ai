@@ -1284,7 +1284,99 @@ loadBusinessFromQR();
         link.click();
         document.body.removeChild(link);
     }
+function generateQRCode() {
 
+    if (!businessData.id) {
+        console.error("Business ID is missing.");
+        return;
+    }
+
+    // Remove old QR section if it exists
+    const oldQR = document.getElementById("qrGenerator");
+
+    if (oldQR) {
+        oldQR.remove();
+    }
+
+    // Create QR section
+    const qrGenerator = document.createElement("div");
+
+    qrGenerator.id = "qrGenerator";
+
+    qrGenerator.style.cssText = `
+        margin-top: 40px;
+        padding: 30px;
+        background: #f8fafc;
+        border-radius: 16px;
+        text-align: center;
+    `;
+
+    qrGenerator.innerHTML = `
+        <h2>Business QR Code</h2>
+
+        <p style="color:#64748b;">
+            Customers can scan this QR code to open your review experience.
+        </p>
+
+        <div
+            id="qrcode"
+            style="
+                display:flex;
+                justify-content:center;
+                margin:25px 0;
+            ">
+        </div>
+
+        <p
+            id="qrUrl"
+            style="
+                font-size:13px;
+                word-break:break-all;
+                color:#475569;
+            ">
+        </p>
+
+        <button
+            type="button"
+            onclick="downloadQRCode()"
+            style="margin-top:15px;">
+            Download QR Code
+        </button>
+    `;
+
+    document.body.appendChild(qrGenerator);
+
+    // Customer URL
+    const customerUrl =
+        window.location.origin +
+        window.location.pathname +
+        "?business=" +
+        encodeURIComponent(businessData.id);
+
+    document.getElementById("qrUrl").textContent =
+        customerUrl;
+
+    // Generate QR
+    const qrContainer =
+        document.getElementById("qrcode");
+
+    if (typeof QRCode === "undefined") {
+
+        console.error("QRCode library is not loaded.");
+
+        qrContainer.innerHTML =
+            "<p style='color:#dc2626;'>QR code library failed to load.</p>";
+
+        return;
+    }
+
+    new QRCode(qrContainer, {
+        text: customerUrl,
+        width: 220,
+        height: 220,
+        correctLevel: QRCode.CorrectLevel.H
+    });
+}
     
 </script>
 
