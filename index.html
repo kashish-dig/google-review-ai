@@ -440,7 +440,7 @@ textarea {
     ></textarea>
 
     <div class="error" id="experienceError">
-        Please select a rating and provide some genuine feedback.
+        Please select a rating, choose the service you used, and provide some genuine feedback.
     </div>
 
     <button class="button" onclick="generateDrafts()">
@@ -741,10 +741,14 @@ async function generateDrafts() {
     const feedback =
         document.getElementById("feedback").value.trim();
 
-    if (selectedRating === 0 || feedback.length < 10) {
-        document.getElementById("experienceError").style.display = "block";
-        return;
-    }
+    if (
+    selectedRating === 0 ||
+    !selectedService ||
+    feedback.length < 10
+) {
+    document.getElementById("experienceError").style.display = "block";
+    return;
+}
 
     document.getElementById("experienceError").style.display = "none";
 
