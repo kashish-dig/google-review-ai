@@ -1,347 +1,865 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>Google Review Assistant</title>
+<title>AI Review Assistant</title>
 
-    <style>
-        * {
-            box-sizing: border-box;
-        }
+<style>
+* {
+    box-sizing: border-box;
+}
 
-        body {
-            margin: 0;
-            font-family: Arial, sans-serif;
-            background: #f5f7fb;
-            color: #202124;
-        }
+body {
+    margin: 0;
+    font-family: Arial, Helvetica, sans-serif;
+    background: #f4f7fb;
+    color: #172033;
+}
 
-        .container {
-            width: 100%;
-            max-width: 520px;
-            margin: 0 auto;
-            padding: 30px 20px;
-        }
+.app {
+    min-height: 100vh;
+    padding: 40px 20px;
+}
 
-        .card {
-            background: white;
-            border-radius: 18px;
-            padding: 30px 24px;
-            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
-        }
+.container {
+    width: 100%;
+    max-width: 720px;
+    margin: auto;
+}
 
-        .business-name {
-            text-align: center;
-            font-size: 14px;
-            color: #666;
-            margin-bottom: 8px;
-        }
+.header {
+    text-align: center;
+    margin-bottom: 30px;
+}
 
-        h1 {
-            text-align: center;
-            font-size: 28px;
-            margin: 10px 0;
-        }
+.logo {
+    width: 52px;
+    height: 52px;
+    margin: 0 auto 15px;
+    border-radius: 14px;
+    background: #111827;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    font-weight: bold;
+}
 
-        .subtitle {
-            text-align: center;
-            color: #666;
-            line-height: 1.5;
-            margin-bottom: 30px;
-        }
+.header h1 {
+    margin: 0;
+    font-size: 30px;
+}
 
-        .section-title {
-            font-size: 17px;
-            font-weight: bold;
-            margin-bottom: 14px;
-        }
+.header p {
+    margin-top: 10px;
+    color: #667085;
+    line-height: 1.5;
+}
 
-        .stars {
-            display: flex;
-            justify-content: center;
-            gap: 8px;
-            margin-bottom: 30px;
-        }
+.card {
+    background: white;
+    border-radius: 18px;
+    padding: 30px;
+    box-shadow: 0 10px 35px rgba(16, 24, 40, 0.08);
+    margin-bottom: 20px;
+}
 
-        .star {
-            border: none;
-            background: transparent;
-            font-size: 36px;
-            cursor: pointer;
-            opacity: 0.35;
-            transition: 0.2s;
-        }
+.step {
+    display: none;
+}
 
-        .star:hover {
-            transform: scale(1.1);
-        }
+.step.active {
+    display: block;
+}
 
-        .star.selected {
-            opacity: 1;
-        }
+.step-label {
+    font-size: 13px;
+    font-weight: bold;
+    color: #667085;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
 
-        textarea {
-            width: 100%;
-            min-height: 130px;
-            padding: 14px;
-            border: 1px solid #ddd;
-            border-radius: 12px;
-            resize: vertical;
-            font-size: 15px;
-            font-family: inherit;
-            outline: none;
-        }
+h2 {
+    margin-top: 0;
+    font-size: 24px;
+}
 
-        textarea:focus {
-            border-color: #4285f4;
-        }
+label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 7px;
+}
 
-        .generate-button {
-            width: 100%;
-            margin-top: 18px;
-            padding: 14px;
-            border: none;
-            border-radius: 10px;
-            background: #4285f4;
-            color: white;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-        }
+input,
+textarea,
+select {
+    width: 100%;
+    padding: 13px 14px;
+    border: 1px solid #d0d5dd;
+    border-radius: 10px;
+    font-size: 15px;
+    margin-bottom: 20px;
+    outline: none;
+    background: white;
+}
 
-        .generate-button:hover {
-            background: #3367d6;
-        }
+input:focus,
+textarea:focus,
+select:focus {
+    border-color: #667085;
+}
 
-        .result {
-            display: none;
-            margin-top: 25px;
-            padding: 20px;
-            border-radius: 12px;
-            background: #f1f6ff;
-        }
+textarea {
+    min-height: 130px;
+    resize: vertical;
+}
 
-        .result h2 {
-            font-size: 18px;
-            margin-top: 0;
-        }
+.button {
+    width: 100%;
+    border: none;
+    border-radius: 10px;
+    padding: 14px 18px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    background: #111827;
+    color: white;
+}
 
-        .review-box {
-            background: white;
-            padding: 15px;
-            border-radius: 10px;
-            line-height: 1.6;
-            margin-top: 12px;
-        }
+.button:hover {
+    opacity: 0.9;
+}
 
-        .copy-button {
-            margin-top: 12px;
-            padding: 10px 15px;
-            border: 1px solid #4285f4;
-            background: white;
-            color: #4285f4;
-            border-radius: 8px;
-            cursor: pointer;
-        }
+.secondary {
+    background: #eef2f6;
+    color: #172033;
+    margin-top: 10px;
+}
 
-        .message {
-            text-align: center;
-            color: #d93025;
-            font-size: 14px;
-            margin-top: 12px;
-        }
+.stars {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin: 25px 0;
+}
 
-        .footer {
-            text-align: center;
-            font-size: 12px;
-            color: #777;
-            margin-top: 20px;
-        }
-    </style>
+.star {
+    font-size: 42px;
+    color: #d0d5dd;
+    cursor: pointer;
+    transition: 0.15s;
+}
+
+.star.selected {
+    color: #f5b301;
+}
+
+.business-preview {
+    background: #f8fafc;
+    border: 1px solid #eaecf0;
+    border-radius: 12px;
+    padding: 18px;
+    margin-bottom: 25px;
+}
+
+.business-name {
+    font-size: 20px;
+    font-weight: bold;
+}
+
+.business-meta {
+    color: #667085;
+    font-size: 14px;
+    margin-top: 6px;
+}
+
+.service-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.service-option {
+    border: 1px solid #d0d5dd;
+    border-radius: 10px;
+    padding: 13px;
+    cursor: pointer;
+    background: white;
+    font-size: 14px;
+}
+
+.service-option.selected {
+    border-color: #111827;
+    background: #f2f4f7;
+}
+
+.drafts {
+    margin-top: 25px;
+}
+
+.draft {
+    border: 1px solid #eaecf0;
+    border-radius: 12px;
+    padding: 18px;
+    margin-bottom: 12px;
+    background: #fafafa;
+}
+
+.draft-number {
+    font-size: 12px;
+    font-weight: bold;
+    color: #667085;
+    margin-bottom: 8px;
+}
+
+.draft-text {
+    line-height: 1.6;
+    margin-bottom: 14px;
+}
+
+.copy-button {
+    border: 1px solid #d0d5dd;
+    background: white;
+    padding: 9px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.note {
+    text-align: center;
+    font-size: 13px;
+    color: #667085;
+    margin-top: 18px;
+    line-height: 1.5;
+}
+
+.error {
+    color: #b42318;
+    font-size: 14px;
+    margin-bottom: 15px;
+    display: none;
+}
+
+@media (max-width: 600px) {
+    .app {
+        padding: 20px 12px;
+    }
+
+    .card {
+        padding: 22px;
+    }
+
+    .header h1 {
+        font-size: 25px;
+    }
+
+    .service-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .star {
+        font-size: 36px;
+    }
+}
+</style>
 </head>
 
 <body>
 
-    <div class="container">
+<div class="app">
 
-        <div class="card">
+<div class="container">
 
-            <div class="business-name">
-                YOUR BUSINESS NAME
-            </div>
+<div class="header">
+    <div class="logo">AI</div>
+    <h1>AI Review Assistant</h1>
+    <p>
+        Turn genuine customer experiences into natural,
+        editable review drafts.
+    </p>
+</div>
 
-            <h1>How was your experience?</h1>
 
-            <p class="subtitle">
-                We'd love to hear about your experience.
-                Share your honest feedback below.
-            </p>
+<!-- BUSINESS SETUP -->
 
-            <div class="section-title">
-                1. Give us a rating
-            </div>
+<div class="card step active" id="businessStep">
 
-            <div class="stars">
+    <div class="step-label">Step 1 of 2</div>
 
-                <button class="star" onclick="selectRating(1)">★</button>
-                <button class="star" onclick="selectRating(2)">★</button>
-                <button class="star" onclick="selectRating(3)">★</button>
-                <button class="star" onclick="selectRating(4)">★</button>
-                <button class="star" onclick="selectRating(5)">★</button>
+    <h2>Set up your business</h2>
 
-            </div>
+    <p style="color:#667085;">
+        Tell us a little about the business so the experience
+        can adapt to your industry.
+    </p>
 
-            <div class="section-title">
-                2. Tell us about your experience
-            </div>
+    <label>Business Name</label>
+    <input
+        type="text"
+        id="businessName"
+        placeholder="e.g. Zenwik Solutions"
+    >
 
-            <textarea
-                id="feedback"
-                placeholder="For example: The staff was friendly and the service was quick..."
-            ></textarea>
+    <label>Business Website</label>
+    <input
+        type="url"
+        id="website"
+        placeholder="https://example.com"
+    >
 
-            <button class="generate-button" onclick="generateReview()">
-                Create Review Draft
-            </button>
+    <label>Industry</label>
+    <select id="industry">
+        <option value="">Select industry</option>
+        <option>Digital Marketing</option>
+        <option>Software / IT Services</option>
+        <option>Website Development</option>
+        <option>Restaurant</option>
+        <option>Hotel</option>
+        <option>Salon / Beauty</option>
+        <option>Healthcare / Clinic</option>
+        <option>Real Estate</option>
+        <option>Automotive / Dealership</option>
+        <option>Education</option>
+        <option>Professional Services</option>
+        <option>Other</option>
+    </select>
 
-            <div id="message" class="message"></div>
+    <label>City / Location</label>
+    <input
+        type="text"
+        id="location"
+        placeholder="e.g. New Delhi, India"
+    >
 
-            <div id="result" class="result">
+    <label>Services</label>
+    <input
+        type="text"
+        id="services"
+        placeholder="e.g. Google Ads, SEO, Website Development"
+    >
 
-                <h2>Your review draft</h2>
+    <label>Google Review Link</label>
+    <input
+        type="url"
+        id="reviewLink"
+        placeholder="Paste your Google review link"
+    >
 
-                <div id="reviewText" class="review-box"></div>
+    <div class="error" id="businessError">
+        Please enter the business name and select an industry.
+    </div>
 
-                <button class="copy-button" onclick="copyReview()">
-                    Copy Review
-                </button>
+    <button class="button" onclick="startExperience()">
+        Continue →
+    </button>
 
-            </div>
+</div>
 
+
+<!-- CUSTOMER EXPERIENCE -->
+
+<div class="card step" id="experienceStep">
+
+    <div class="step-label">Step 2 of 2</div>
+
+    <div class="business-preview">
+        <div class="business-name" id="displayBusiness">
+            Your Business
         </div>
 
-        <div class="footer">
-            Your feedback should reflect your genuine experience.
+        <div class="business-meta" id="displayMeta">
+            Your location
         </div>
+    </div>
+
+    <h2>How was your experience?</h2>
+
+    <p style="color:#667085;">
+        Please share your genuine experience. Your feedback
+        will be used to create review drafts that you can edit.
+    </p>
+
+    <div class="stars">
+
+        <span class="star" onclick="selectRating(1)">★</span>
+
+        <span class="star" onclick="selectRating(2)">★</span>
+
+        <span class="star" onclick="selectRating(3)">★</span>
+
+        <span class="star" onclick="selectRating(4)">★</span>
+
+        <span class="star" onclick="selectRating(5)">★</span>
 
     </div>
 
+    <label>What service did you use?</label>
 
-    <script>
+    <div class="service-grid" id="serviceGrid"></div>
 
-        let selectedRating = 0;
+    <label>Tell us about your experience</label>
+
+    <textarea
+        id="feedback"
+        placeholder="Tell us what actually happened, what you liked, what could be improved, or anything else about your experience..."
+    ></textarea>
+
+    <div class="error" id="experienceError">
+        Please select a rating and provide some genuine feedback.
+    </div>
+
+    <button class="button" onclick="generateDrafts()">
+        Create Review Drafts ✨
+    </button>
+
+    <button class="button secondary" onclick="goBack()">
+        ← Back
+    </button>
+
+    <div id="draftContainer"></div>
+
+</div>
 
 
-        function selectRating(rating) {
+<div class="note">
+    Your review should reflect your genuine experience.
+    You can edit any draft before posting it.
+</div>
 
-            selectedRating = rating;
+</div>
+</div>
 
-            const stars = document.querySelectorAll(".star");
 
-            stars.forEach((star, index) => {
+<script>
 
-                if (index < rating) {
-                    star.classList.add("selected");
-                } else {
-                    star.classList.remove("selected");
-                }
+let selectedRating = 0;
+let selectedService = "";
 
-            });
+let businessData = {};
 
-            document.getElementById("message").textContent = "";
+
+/* START CUSTOMER EXPERIENCE */
+
+function startExperience() {
+
+    const name = document.getElementById("businessName").value.trim();
+
+    const industry = document.getElementById("industry").value;
+
+    const location = document.getElementById("location").value.trim();
+
+    const services = document.getElementById("services").value.trim();
+
+    if (!name || !industry) {
+
+        document.getElementById("businessError").style.display = "block";
+
+        return;
+    }
+
+    document.getElementById("businessError").style.display = "none";
+
+    businessData = {
+        name,
+        website: document.getElementById("website").value.trim(),
+        industry,
+        location,
+        services,
+        reviewLink: document.getElementById("reviewLink").value.trim()
+    };
+
+    document.getElementById("displayBusiness").textContent = name;
+
+    document.getElementById("displayMeta").textContent =
+        industry + (location ? " • " + location : "");
+
+    createServiceOptions(services);
+
+    document.getElementById("businessStep").classList.remove("active");
+
+    document.getElementById("experienceStep").classList.add("active");
+
+    window.scrollTo({
+        top: 0,
+        behavior: "smooth"
+    });
+}
+
+
+/* CREATE SERVICE OPTIONS */
+
+function createServiceOptions(services) {
+
+    const grid = document.getElementById("serviceGrid");
+
+    grid.innerHTML = "";
+
+    let serviceList = [];
+
+    if (services) {
+
+        serviceList = services
+            .split(",")
+            .map(service => service.trim())
+            .filter(service => service);
+
+    }
+
+    if (serviceList.length === 0) {
+
+        serviceList = getDefaultServices(businessData.industry);
+
+    }
+
+    serviceList.slice(0, 6).forEach(service => {
+
+        const div = document.createElement("div");
+
+        div.className = "service-option";
+
+        div.textContent = service;
+
+        div.onclick = function() {
+
+            document
+                .querySelectorAll(".service-option")
+                .forEach(option => option.classList.remove("selected"));
+
+            div.classList.add("selected");
+
+            selectedService = service;
+        };
+
+        grid.appendChild(div);
+
+    });
+}
+
+
+/* INDUSTRY-SPECIFIC DEFAULT SERVICES */
+
+function getDefaultServices(industry) {
+
+    const services = {
+
+        "Digital Marketing": [
+            "SEO",
+            "Google Ads",
+            "Social Media",
+            "Content Marketing"
+        ],
+
+        "Software / IT Services": [
+            "Software Development",
+            "IT Support",
+            "Consulting",
+            "Automation"
+        ],
+
+        "Website Development": [
+            "Website Development",
+            "Web Design",
+            "E-commerce",
+            "Maintenance"
+        ],
+
+        "Restaurant": [
+            "Food",
+            "Dining Experience",
+            "Delivery",
+            "Service"
+        ],
+
+        "Hotel": [
+            "Room",
+            "Food & Dining",
+            "Hospitality",
+            "Facilities"
+        ],
+
+        "Salon / Beauty": [
+            "Hair Service",
+            "Beauty Treatment",
+            "Styling",
+            "Customer Service"
+        ],
+
+        "Healthcare / Clinic": [
+            "Consultation",
+            "Treatment",
+            "Staff",
+            "Facilities"
+        ],
+
+        "Automotive / Dealership": [
+            "Vehicle Purchase",
+            "Service",
+            "Sales Team",
+            "Test Drive"
+        ],
+
+        "Real Estate": [
+            "Property Search",
+            "Consultation",
+            "Sales Team",
+            "Property"
+        ],
+
+        "Education": [
+            "Course",
+            "Teacher",
+            "Learning Experience",
+            "Support"
+        ],
+
+        "Professional Services": [
+            "Consultation",
+            "Service",
+            "Communication",
+            "Support"
+        ]
+
+    };
+
+    return services[industry] || [
+        "Service",
+        "Staff",
+        "Communication",
+        "Overall Experience"
+    ];
+}
+
+
+/* RATING */
+
+function selectRating(rating) {
+
+    selectedRating = rating;
+
+    const stars = document.querySelectorAll(".star");
+
+    stars.forEach((star, index) => {
+
+        if (index < rating) {
+
+            star.classList.add("selected");
+
+        } else {
+
+            star.classList.remove("selected");
 
         }
 
-
-        function generateReview() {
-
-            const feedback =
-                document.getElementById("feedback").value.trim();
-
-            const message =
-                document.getElementById("message");
-
-            const result =
-                document.getElementById("result");
-
-            const reviewText =
-                document.getElementById("reviewText");
+    });
+}
 
 
-            if (selectedRating === 0) {
+/* GENERATE DRAFTS */
 
-                message.textContent =
-                    "Please select a rating first.";
+function generateDrafts() {
 
-                return;
+    const feedback =
+        document.getElementById("feedback").value.trim();
+
+    if (selectedRating === 0 || feedback.length < 10) {
+
+        document.getElementById("experienceError").style.display = "block";
+
+        return;
+    }
+
+    document.getElementById("experienceError").style.display = "none";
+
+    const drafts = createDrafts(feedback);
+
+    const container =
+        document.getElementById("draftContainer");
+
+    container.innerHTML = `
+        <div class="drafts">
+
+            <h3>Your Review Drafts</h3>
+
+            ${drafts.map((draft, index) => `
+
+                <div class="draft">
+
+                    <div class="draft-number">
+                        OPTION ${index + 1}
+                    </div>
+
+                    <div class="draft-text">
+                        ${escapeHtml(draft)}
+                    </div>
+
+                    <button
+                        class="copy-button"
+                        onclick="copyDraft(this, ${index})">
+                        Copy Review
+                    </button>
+
+                </div>
+
+            `).join("")}
+
+            ${
+                businessData.reviewLink
+                ?
+                `
+                <a
+                    href="${escapeAttribute(businessData.reviewLink)}"
+                    target="_blank"
+                    style="text-decoration:none;"
+                >
+                    <button
+                        class="button"
+                        style="margin-top:10px;">
+                        Continue to Google Reviews →
+                    </button>
+                </a>
+                `
+                :
+                ""
             }
 
+        </div>
+    `;
 
-            if (feedback.length < 10) {
+    window.generatedDrafts = drafts;
 
-                message.textContent =
-                    "Please tell us a little more about your experience.";
-
-                return;
-            }
-
-
-            let opening = "";
-
-            if (selectedRating >= 4) {
-
-                opening =
-                    "I had a positive experience here. ";
-
-            } else if (selectedRating === 3) {
-
-                opening =
-                    "I had an overall okay experience. ";
-
-            } else {
-
-                opening =
-                    "I wanted to share my honest experience. ";
-
-            }
+    container.scrollIntoView({
+        behavior: "smooth"
+    });
+}
 
 
-            const review =
-                opening + feedback;
+/* TEMPORARY DRAFT GENERATOR */
+
+function createDrafts(feedback) {
+
+    const name = businessData.name;
+
+    const service = selectedService
+        ? selectedService
+        : "the service";
+
+    const location = businessData.location;
+
+    let drafts = [];
+
+    if (selectedRating >= 4) {
+
+        drafts.push(
+            `I had a great experience with ${name}. I used their ${service.toLowerCase()} service and ${feedback}`
+        );
+
+        drafts.push(
+            `Really happy with my experience at ${name}. Their ${service.toLowerCase()} service was good, and ${feedback}`
+        );
+
+        drafts.push(
+            `My experience with ${name} was positive. I especially appreciated the ${service.toLowerCase()} experience. ${feedback}`
+        );
+
+    } else if (selectedRating === 3) {
+
+        drafts.push(
+            `I had an overall okay experience with ${name}. I used their ${service.toLowerCase()} service and ${feedback}`
+        );
+
+        drafts.push(
+            `My experience with ${name} was mixed. Regarding their ${service.toLowerCase()} service, ${feedback}`
+        );
+
+        drafts.push(
+            `Overall, my experience with ${name} was average. ${feedback}`
+        );
+
+    } else {
+
+        drafts.push(
+            `I wanted to share my honest experience with ${name}. I used their ${service.toLowerCase()} service and ${feedback}`
+        );
+
+        drafts.push(
+            `My experience with ${name} could have been better. ${feedback}`
+        );
+
+        drafts.push(
+            `I had some concerns during my experience with ${name}. ${feedback}`
+        );
+
+    }
+
+    return drafts;
+}
 
 
-            reviewText.textContent = review;
+/* COPY */
 
-            result.style.display = "block";
+function copyDraft(button, index) {
 
-            message.textContent = "";
+    const text = window.generatedDrafts[index];
 
-        }
+    navigator.clipboard.writeText(text);
+
+    button.textContent = "Copied ✓";
+
+    setTimeout(() => {
+
+        button.textContent = "Copy Review";
+
+    }, 1500);
+}
 
 
-        function copyReview() {
+/* BACK */
 
-            const review =
-                document.getElementById("reviewText").textContent;
+function goBack() {
 
-            navigator.clipboard.writeText(review);
+    document
+        .getElementById("experienceStep")
+        .classList.remove("active");
 
-            const button =
-                document.querySelector(".copy-button");
+    document
+        .getElementById("businessStep")
+        .classList.add("active");
 
-            button.textContent = "Copied!";
+    window.scrollTo({
+        top: 0,
+        behavior: "smooth"
+    });
+}
 
-            setTimeout(() => {
 
-                button.textContent = "Copy Review";
+/* SECURITY HELPERS */
 
-            }, 2000);
+function escapeHtml(text) {
 
-        }
+    const div = document.createElement("div");
 
-    </script>
+    div.textContent = text;
+
+    return div.innerHTML;
+}
+
+function escapeAttribute(text) {
+
+    return text
+        .replace(/&/g, "&amp;")
+        .replace(/"/g, "&quot;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+}
+
+</script>
 
 </body>
 </html>
