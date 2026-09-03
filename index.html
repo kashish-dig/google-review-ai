@@ -269,6 +269,22 @@ textarea {
     }
 }
 </style>
+    <style>
+    /* Hide business setup immediately for QR visitors */
+    .qr-mode #businessStep {
+        display: none !important;
+    }
+
+    .qr-mode #experienceStep {
+        display: block !important;
+    }
+</style>
+
+<script>
+    if (new URLSearchParams(window.location.search).has("business")) {
+        document.documentElement.classList.add("qr-mode");
+    }
+</script>
 </head>
 
 <body>
