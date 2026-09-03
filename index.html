@@ -141,24 +141,51 @@ textarea {
     margin-top: 10px;
 }
 
+.rating-section {
+    text-align: center;
+    margin: 28px 0 30px;
+}
+
 .stars {
     display: flex;
     justify-content: center;
+    align-items: center;
     gap: 8px;
-    margin: 25px 0;
+}
+.star {
+    width: 54px;
+    height: 54px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: #d0d5dd;
+    font-size: 44px;
+    line-height: 1;
+    cursor: pointer;
+    border-radius: 12px;
+    transition:
+        transform 0.15s ease,
+        color 0.15s ease,
+        background 0.15s ease;
 }
 
-.star {
-    font-size: 42px;
-    color: #d0d5dd;
-    cursor: pointer;
-    transition: 0.15s;
+.star:hover,
+.star:focus-visible {
+    transform: scale(1.12);
+    background: #f8fafc;
+    outline: none;
 }
 
 .star.selected {
     color: #f5b301;
 }
-
+.rating-text {
+    margin-top: 10px;
+    min-height: 20px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #667085;
+}
 .business-preview {
     background: #f8fafc;
     border: 1px solid #eaecf0;
@@ -441,19 +468,71 @@ textarea {
         will be used to create review drafts that you can edit.
     </p>
 
-    <div class="stars">
+    <<div class="rating-section">
 
-        <span class="star" onclick="selectRating(1)">★</span>
+    <div
+        class="stars"
+        id="starRating"
+        role="radiogroup"
+        aria-label="Rate your experience from 1 to 5 stars"
+    >
 
-        <span class="star" onclick="selectRating(2)">★</span>
+        <button
+            type="button"
+            class="star"
+            onclick="selectRating(1)"
+            aria-label="1 out of 5 stars"
+            aria-checked="false"
+            role="radio"
+        >★</button>
 
-        <span class="star" onclick="selectRating(3)">★</span>
+        <button
+            type="button"
+            class="star"
+            onclick="selectRating(2)"
+            aria-label="2 out of 5 stars"
+            aria-checked="false"
+            role="radio"
+        >★</button>
 
-        <span class="star" onclick="selectRating(4)">★</span>
+        <button
+            type="button"
+            class="star"
+            onclick="selectRating(3)"
+            aria-label="3 out of 5 stars"
+            aria-checked="false"
+            role="radio"
+        >★</button>
 
-        <span class="star" onclick="selectRating(5)">★</span>
+        <button
+            type="button"
+            class="star"
+            onclick="selectRating(4)"
+            aria-label="4 out of 5 stars"
+            aria-checked="false"
+            role="radio"
+        >★</button>
+
+        <button
+            type="button"
+            class="star"
+            onclick="selectRating(5)"
+            aria-label="5 out of 5 stars"
+            aria-checked="false"
+            role="radio"
+        >★</button>
 
     </div>
+
+    <div
+        id="ratingText"
+        class="rating-text"
+        aria-live="polite"
+    >
+        Select a rating
+    </div>
+
+</div>
 
     <label>What service did you use?</label>
 
@@ -921,23 +1000,63 @@ function selectRating(rating) {
 
     selectedRating = rating;
 
-    const stars = document.querySelectorAll(".star");
+    const stars =
+        document.querySelectorAll(".star");
 
     stars.forEach((star, index) => {
 
-        if (index < rating) {
+        const isSelected =
+            index < rating;
 
+        if (isSelected) {
             star.classList.add("selected");
-
         } else {
-
             star.classList.remove("selected");
-
         }
 
+        star.setAttribute(
+            "aria-checked",
+            isSelected ? "true" : "false"
+        );
     });
-}
 
+    const ratingText =
+        document.getElementById("ratingText");
+
+    if (ratingText) {
+        ratingText.textContent =
+            rating + " out of 5 stars";
+    }
+}
+    document.querySelectorAll(".star").forEach((star, index, stars) => {
+
+    star.addEventListener("keydown", (event) => {
+
+        let rating = index + 1;
+
+        if (event.key === "ArrowRight" || event.key === "ArrowUp") {
+            rating = Math.min(5, rating + 1);
+        }
+
+        if (event.key === "ArrowLeft" || event.key === "ArrowDown") {
+            rating = Math.max(1, rating - 1);
+        }
+
+        if (
+            event.key === "ArrowRight" ||
+            event.key === "ArrowUp" ||
+            event.key === "ArrowLeft" ||
+            event.key === "ArrowDown"
+        ) {
+            event.preventDefault();
+
+            selectRating(rating);
+
+            stars[rating - 1].focus();
+        }
+    });
+
+});
 
 /* GENERATE DRAFTS */
 
