@@ -22,7 +22,6 @@ export default async function handler(req, res) {
             return res.status(500).json({ error: "Database configuration is missing." });
         }
 
-        // Validate the access token with Supabase Auth. The owner ID always comes from the verified token.
         const userResponse = await fetch(`${supabaseUrl}/auth/v1/user`, {
             method: "GET",
             headers: {
@@ -118,6 +117,13 @@ Rules:
 - Do not guess services.
 - Do not guess the industry.
 - If information is unclear or missing, return an empty string.
+- Return 3 to 6 main services when the website clearly supports them.
+- Services must be standalone, customer-friendly service names that make sense on their own.
+- Do not split one service concept into fragments such as "online ordering", "delivery", and "pickup" when the website presents them as one offering. Combine them into a meaningful name such as "Online food ordering & delivery" or "Online ordering, delivery & pickup" when supported.
+- Do not use vague standalone fragments such as "delivery", "pickup", "service", "help", or "support" when a more specific service name can be formed from the website context.
+- Do not start a service name with "and".
+- Do not put commas inside a service name. If a service contains a parenthetical list, use semicolons inside the parentheses.
+- Return the main services as a comma-separated list, with one complete service per comma.
 - Keep services concise and specific.
 - Return only the requested structured information.`
                     },
@@ -172,12 +178,64 @@ ${text}`
         }
         const result = JSON.parse(content);
 
+        function normalizeIndustry(industry) {
+            const value = (industry || "").trim().toLowerCase().replace(/\s+/g, " ");
+            const map = {
+                "food delivery / restaurant": "Restaurant",
+                "restaurant & food delivery": "Restaurant",
+                "food delivery": "Restaurant",
+                "restaurants": "Restaurant"
+            };
+            return map[value] || (industry || "").trim();
+        }
+
+        function cleanServices(services) {
+            const source = (services || "").trim();
+            if (!source) return "";
+
+            const parts = [];
+            let current = "";
+            let depth = 0;
+            for (const ch of source) {
+                if ("([{".includes(ch)) depth++;
+                else if (")] }".replace(/ /g, "").includes(ch)) depth = Math.max(0, depth - 1);
+
+                if (ch === "," && depth === 0) {
+                    if (current.trim()) parts.push(current.trim());
+                    current = "";
+                } else {
+                    current += ch;
+                }
+            }
+            if (current.trim()) parts.push(current.trim());
+
+            const cleaned = [];
+            for (let part of parts) {
+                part = part.replace(/^\s*(?:and|&)\s+/i, "").trim();
+                if (!part) continue;
+
+                const lower = part.toLowerCase();
+                const previous = cleaned[cleaned.length - 1];
+                const previousLower = previous?.toLowerCase() || "";
+                if (previous && /^(delivery|pickup|pick-up)$/i.test(lower) && /(food|meal|order|ordering|restaurant|grocery|shopping)/i.test(previousLower)) {
+                    cleaned[cleaned.length - 1] = `${previous} & ${lower === "pick-up" ? "pickup" : lower}`;
+                    continue;
+                }
+
+                cleaned.push(part);
+            }
+
+            return cleaned.slice(0, 6).join(", ");
+        }
+
+        result.industry = normalizeIndustry(result.industry);
+        result.services = cleanServices(result.services);
+
         const supabaseHeaders = {
             "Content-Type": "application/json",
             "apikey": supabaseSecretKey
         };
 
-        // First look for a business already owned by this user.
         const existingResponse = await fetch(
             `${supabaseUrl}/rest/v1/businesses?select=business_id,owner_id&website=eq.${encodeURIComponent(normalizedWebsite)}&owner_id=eq.${encodeURIComponent(ownerId)}&limit=1`,
             { method: "GET", headers: supabaseHeaders }
@@ -212,7 +270,6 @@ ${text}`
                 return res.status(500).json({ error: "Unable to update business information." });
             }
         } else {
-            // Check whether the website belongs to another account or is a legacy unowned record.
             const ownershipResponse = await fetch(
                 `${supabaseUrl}/rest/v1/businesses?select=business_id,owner_id&website=eq.${encodeURIComponent(normalizedWebsite)}&limit=1`,
                 { method: "GET", headers: supabaseHeaders }
@@ -230,7 +287,6 @@ ${text}`
                     return res.status(403).json({ error: "This business is already connected to another owner account." });
                 }
 
-                // Claim a pre-authentication record once, then update it normally.
                 if (!legacyBusiness.owner_id) {
                     businessId = legacyBusiness.business_id;
                     const claimResponse = await fetch(
@@ -256,7 +312,6 @@ ${text}`
                 }
             }
 
-            // No existing record: create a new business for this authenticated owner.
             if (!businessId) {
                 const baseName = (result.businessName || "business")
                     .toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40);
