@@ -4,7 +4,6 @@ export default async function handler(req, res) {
     }
 
     try {
-        // Require a valid Supabase Auth access token.
         const authHeader = req.headers.authorization || "";
         if (!authHeader.startsWith("Bearer ")) {
             return res.status(401).json({ error: "Authentication required." });
@@ -23,7 +22,7 @@ export default async function handler(req, res) {
             return res.status(500).json({ error: "Database configuration is missing." });
         }
 
-        // Validate the access token with Supabase Auth. Do not trust client-supplied user IDs.
+        // Validate the access token with Supabase Auth. The owner ID always comes from the verified token.
         const userResponse = await fetch(`${supabaseUrl}/auth/v1/user`, {
             method: "GET",
             headers: {
@@ -31,15 +30,13 @@ export default async function handler(req, res) {
                 "Authorization": `Bearer ${accessToken}`
             }
         });
-
         const userData = await userResponse.json();
         if (!userResponse.ok || !userData?.id) {
             return res.status(401).json({ error: "Your login session is invalid or expired. Please log in again." });
         }
-
         const ownerId = userData.id;
-        const { website } = req.body || {};
 
+        const { website } = req.body || {};
         if (!website) {
             return res.status(400).json({ error: "Website URL is required." });
         }
@@ -76,7 +73,6 @@ export default async function handler(req, res) {
         const websiteResponse = await fetch(normalizedWebsite, {
             headers: { "User-Agent": "Mozilla/5.0 (compatible; ReviewAssistant/1.0)" }
         });
-
         if (!websiteResponse.ok) {
             return res.status(502).json({ error: "Unable to access this website." });
         }
@@ -174,19 +170,18 @@ ${text}`
         if (!content) {
             return res.status(500).json({ error: "AI returned an empty response." });
         }
-
         const result = JSON.parse(content);
+
         const supabaseHeaders = {
             "Content-Type": "application/json",
             "apikey": supabaseSecretKey
         };
 
-        // Only find a business owned by the authenticated user.
+        // First look for a business already owned by this user.
         const existingResponse = await fetch(
             `${supabaseUrl}/rest/v1/businesses?select=business_id,owner_id&website=eq.${encodeURIComponent(normalizedWebsite)}&owner_id=eq.${encodeURIComponent(ownerId)}&limit=1`,
             { method: "GET", headers: supabaseHeaders }
         );
-
         const existingBusinesses = await existingResponse.json();
         if (!existingResponse.ok) {
             console.error("Supabase lookup error:", existingBusinesses);
@@ -197,7 +192,6 @@ ${text}`
 
         if (Array.isArray(existingBusinesses) && existingBusinesses.length > 0) {
             businessId = existingBusinesses[0].business_id;
-
             const updateResponse = await fetch(
                 `${supabaseUrl}/rest/v1/businesses?business_id=eq.${encodeURIComponent(businessId)}&owner_id=eq.${encodeURIComponent(ownerId)}`,
                 {
@@ -212,14 +206,13 @@ ${text}`
                     })
                 }
             );
-
             if (!updateResponse.ok) {
                 const updateError = await updateResponse.text();
                 console.error("Supabase update error:", updateError);
                 return res.status(500).json({ error: "Unable to update business information." });
             }
         } else {
-            // If this website is already owned by another account, never modify it.
+            // Check whether the website belongs to another account or is a legacy unowned record.
             const ownershipResponse = await fetch(
                 `${supabaseUrl}/rest/v1/businesses?select=business_id,owner_id&website=eq.${encodeURIComponent(normalizedWebsite)}&limit=1`,
                 { method: "GET", headers: supabaseHeaders }
@@ -229,34 +222,66 @@ ${text}`
                 console.error("Supabase ownership lookup error:", ownershipData);
                 return res.status(500).json({ error: "Unable to access business database." });
             }
-            if (Array.isArray(ownershipData) && ownershipData.length > 0 && ownershipData[0].owner_id) {
-                return res.status(403).json({ error: "This business is already connected to another owner account." });
+
+            if (Array.isArray(ownershipData) && ownershipData.length > 0) {
+                const legacyBusiness = ownershipData[0];
+
+                if (legacyBusiness.owner_id && legacyBusiness.owner_id !== ownerId) {
+                    return res.status(403).json({ error: "This business is already connected to another owner account." });
+                }
+
+                // Claim a pre-authentication record once, then update it normally.
+                if (!legacyBusiness.owner_id) {
+                    businessId = legacyBusiness.business_id;
+                    const claimResponse = await fetch(
+                        `${supabaseUrl}/rest/v1/businesses?business_id=eq.${encodeURIComponent(businessId)}&owner_id=is.null`,
+                        {
+                            method: "PATCH",
+                            headers: { ...supabaseHeaders, "Prefer": "return=minimal" },
+                            body: JSON.stringify({
+                                owner_id: ownerId,
+                                business_name: result.businessName,
+                                website: normalizedWebsite,
+                                industry: result.industry,
+                                location: result.location,
+                                services: result.services
+                            })
+                        }
+                    );
+                    if (!claimResponse.ok) {
+                        const claimError = await claimResponse.text();
+                        console.error("Supabase legacy claim error:", claimError);
+                        return res.status(500).json({ error: "Unable to connect this business to your account." });
+                    }
+                }
             }
 
-            const baseName = (result.businessName || "business")
-                .toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40);
-            const randomPart = crypto.randomUUID().replace(/-/g, "").slice(0, 6);
-            businessId = `${baseName || "business"}-${randomPart}`;
+            // No existing record: create a new business for this authenticated owner.
+            if (!businessId) {
+                const baseName = (result.businessName || "business")
+                    .toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40);
+                const randomPart = crypto.randomUUID().replace(/-/g, "").slice(0, 6);
+                businessId = `${baseName || "business"}-${randomPart}`;
 
-            const insertResponse = await fetch(`${supabaseUrl}/rest/v1/businesses`, {
-                method: "POST",
-                headers: { ...supabaseHeaders, "Prefer": "return=minimal" },
-                body: JSON.stringify({
-                    business_id: businessId,
-                    owner_id: ownerId,
-                    business_name: result.businessName,
-                    website: normalizedWebsite,
-                    industry: result.industry,
-                    location: result.location,
-                    services: result.services,
-                    google_review_link: ""
-                })
-            });
-
-            if (!insertResponse.ok) {
-                const insertError = await insertResponse.text();
-                console.error("Supabase insert error:", insertError);
-                return res.status(500).json({ error: "Unable to save business information." });
+                const insertResponse = await fetch(`${supabaseUrl}/rest/v1/businesses`, {
+                    method: "POST",
+                    headers: { ...supabaseHeaders, "Prefer": "return=minimal" },
+                    body: JSON.stringify({
+                        business_id: businessId,
+                        owner_id: ownerId,
+                        business_name: result.businessName,
+                        website: normalizedWebsite,
+                        industry: result.industry,
+                        location: result.location,
+                        services: result.services,
+                        google_review_link: ""
+                    })
+                });
+                if (!insertResponse.ok) {
+                    const insertError = await insertResponse.text();
+                    console.error("Supabase insert error:", insertError);
+                    return res.status(500).json({ error: "Unable to save business information." });
+                }
             }
         }
 
