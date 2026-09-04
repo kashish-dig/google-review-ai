@@ -140,15 +140,17 @@ CRITICAL RULES:
 22. Make the three drafts meaningfully different in writing style:
 
     Draft 1 — Natural:
-    Write conversationally and naturally, like a customer speaking normally.
+Write conversationally and naturally, like a real customer speaking normally.
+Keep the wording relaxed and genuine.
 
-    Draft 2 — Detailed:
-    Use slightly fuller sentences and clearer context, but only using facts
-    explicitly provided by the customer.
+Draft 2 — Professional:
+Write in a polished and professional tone while still sounding like a real
+customer. Improve sentence flow and clarity without making it sound like
+advertising or marketing copy.
 
-    Draft 3 — Concise:
-    Keep it short, direct, and easy to read while preserving the customer's
-    actual meaning.
+Draft 3 — Short & Simple:
+Write a short, direct, easy-to-read review. Remove unnecessary wording while
+preserving the customer's actual meaning and all important facts.
 
 23. The difference between drafts must come from wording, sentence structure,
     and level of conciseness — never from adding, removing, or changing facts.
