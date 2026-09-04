@@ -440,6 +440,54 @@ textarea {
         transform: translateX(100%);
     }
 }
+    .qr-error {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 30px 20px;
+    background: #f8fafc;
+    box-sizing: border-box;
+}
+
+.qr-error-card {
+    width: min(100%, 480px);
+    padding: 36px 30px;
+    background: #ffffff;
+    border-radius: 18px;
+    text-align: center;
+    box-sizing: border-box;
+    box-shadow: 0 10px 30px rgba(16, 24, 40, 0.08);
+}
+
+.qr-error-icon {
+    width: 48px;
+    height: 48px;
+    margin: 0 auto 18px;
+    border-radius: 50%;
+    background: #fef3f2;
+    color: #d92d20;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    font-weight: 700;
+}
+
+.qr-error-card h2 {
+    margin: 0 0 12px;
+    font-size: 22px;
+}
+
+.qr-error-card p {
+    margin: 0 0 24px;
+    color: #667085;
+    line-height: 1.6;
+}
+
+.qr-error-card .button {
+    width: 100%;
+}
 </style>
     <style>
     /* Prevent any setup-page flash for QR visitors */
@@ -502,6 +550,26 @@ textarea {
         <div class="skeleton-line skeleton-input"></div>
         <div class="skeleton-line skeleton-input"></div>
         <div class="skeleton-button"></div>
+    </div>
+</div>
+    <div id="qrError" class="qr-error" style="display:none;">
+    <div class="qr-error-card">
+        <div class="qr-error-icon">!</div>
+
+        <h2>This review link is unavailable</h2>
+
+        <p>
+            We couldn't load this business's review page.
+            Please try again or contact the business directly.
+        </p>
+
+        <button
+            type="button"
+            class="button"
+            onclick="window.location.reload()"
+        >
+            Try Again
+        </button>
     </div>
 </div>
 <div class="app">
@@ -770,6 +838,11 @@ async function loadBusinessFromQR() {
 
     if (!businessId) {
         return;
+    }
+        const qrSkeleton = document.getElementById("qrSkeleton");
+
+    if (qrSkeleton) {
+        qrSkeleton.style.display = "block";
     }
 
     const status = document.getElementById("analysisStatus");
