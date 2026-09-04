@@ -134,13 +134,28 @@ CRITICAL RULES:
 
 20. Create exactly three drafts.
 
-21. All three drafts must contain the same factual information.
-    Only wording and sentence structure may differ.
+21. All three drafts must contain exactly the same factual information.
+    Do not add or remove facts between drafts.
 
-22. Do not add SEO keywords or marketing language.
+22. Make the three drafts meaningfully different in writing style:
 
-23. Do not mention the rating inside the review unless the customer explicitly mentioned it in their feedback.
+    Draft 1 — Natural:
+    Write conversationally and naturally, like a customer speaking normally.
 
+    Draft 2 — Detailed:
+    Use slightly fuller sentences and clearer context, but only using facts
+    explicitly provided by the customer.
+
+    Draft 3 — Concise:
+    Keep it short, direct, and easy to read while preserving the customer's
+    actual meaning.
+
+23. The difference between drafts must come from wording, sentence structure,
+    and level of conciseness — never from adding, removing, or changing facts.
+
+24. Do not add SEO keywords or marketing language.
+
+25. Do not mention the rating inside the review unless the customer explicitly mentioned it in their feedback.
 The output must contain ONLY the three review drafts in the requested JSON format.
 `
                         },
