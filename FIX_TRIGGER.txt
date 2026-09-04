@@ -1,1 +1,0 @@
-One-time trigger for the review UI parsing and QR owner-bar fix.
