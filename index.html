@@ -1024,8 +1024,13 @@ function selectRating(rating) {
         document.getElementById("ratingText");
 
     if (ratingText) {
-        ratingText.textContent =
-            rating + " out of 5 stars";
+        ratingText.textContent = {
+    1: "1 star — Very poor",
+    2: "2 stars — Poor",
+    3: "3 stars — Okay",
+    4: "4 stars — Good",
+    5: "5 stars — Excellent"
+}[rating];
     }
 }
     document.querySelectorAll(".star").forEach((star, index, stars) => {
