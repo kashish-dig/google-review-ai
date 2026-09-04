@@ -1,0 +1,56 @@
+name: Fix review UI
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    if: ${{ !contains(github.event.head_commit.message, '[auto-fix]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Apply fixes
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('index.html')
+          s = p.read_text(encoding='utf-8')
+
+          s = s.replace('.qr-mode .header{display:none}.qr-mode .app{padding-top:30px}', '.qr-mode .header{display:none}.qr-mode .auth-userbar{display:none!important}.qr-mode .app{padding-top:30px}')
+
+          old = 'function setBusinessFields(b){businessData={id:b.business_id||"",name:b.business_name||"",website:b.website||"",industry:b.industry||"",location:b.location||"",services:b.services||"",reviewLink:b.google_review_link||""};'
+          new = 'function normalizeIndustry(industry){const v=(industry||"").trim().toLowerCase().replace(/\\s+/g," ");const map={"food delivery / restaurant":"Restaurant","restaurant & food delivery":"Restaurant","food delivery":"Restaurant","restaurants":"Restaurant"};return map[v]||industry.trim()}\nfunction setBusinessFields(b){businessData={id:b.business_id||"",name:b.business_name||"",website:b.website||"",industry:normalizeIndustry(b.industry||""),location:b.location||"",services:b.services||"",reviewLink:b.google_review_link||""};'
+          if old not in s:
+              raise SystemExit('setBusinessFields target not found')
+          s = s.replace(old, new, 1)
+
+          old = 'if(d.industry){const sel=document.getElementById("industry");let o=[...sel.options].find(x=>x.value.toLowerCase()===d.industry.toLowerCase());if(!o){o=document.createElement("option");o.value=d.industry;o.textContent=d.industry;sel.appendChild(o)}sel.value=o.value}'
+          new = 'if(d.industry){const industry=normalizeIndustry(d.industry);const sel=document.getElementById("industry");let o=[...sel.options].find(x=>x.value.toLowerCase()===industry.toLowerCase());if(!o){o=document.createElement("option");o.value=industry;o.textContent=industry;sel.appendChild(o)}sel.value=o.value}'
+          if old not in s:
+              raise SystemExit('analyze industry target not found')
+          s = s.replace(old, new, 1)
+
+          old = 'function createServiceOptions(services){const grid=document.getElementById("serviceGrid");grid.innerHTML="";let list=services?services.split(",").map(s=>s.trim()).filter(Boolean):[];if(!list.length)list=getDefaultServices(businessData.industry);list.slice(0,6).forEach(service=>{const d=document.createElement("div");d.className="service-option";d.textContent=service;d.onclick=()=>{document.querySelectorAll(".service-option").forEach(o=>o.classList.remove("selected"));d.classList.add("selected");selectedService=service};grid.appendChild(d)})}'
+          new = 'function parseServices(services){const list=[],source=services||"";let current="",depth=0;for(const ch of source){if("([{".includes(ch))depth++;else if(")] }".replace(/ /g,"").includes(ch))depth=Math.max(0,depth-1);if(ch===","&&depth===0){if(current.trim())list.push(current.trim());current=""}else current+=ch}if(current.trim())list.push(current.trim());return list}\nfunction createServiceOptions(services){const grid=document.getElementById("serviceGrid");grid.innerHTML="";let list=parseServices(services);if(!list.length)list=getDefaultServices(businessData.industry);list.slice(0,6).forEach(service=>{const d=document.createElement("div");d.className="service-option";d.textContent=service;d.onclick=()=>{document.querySelectorAll(".service-option").forEach(o=>o.classList.remove("selected"));d.classList.add("selected");selectedService=service};grid.appendChild(d)})}'
+          if old not in s:
+              raise SystemExit('service parser target not found')
+          s = s.replace(old, new, 1)
+
+          p.write_text(s, encoding='utf-8')
+          PY
+
+      - name: Commit and clean up
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git commit -m "Fix review service parsing and QR owner UI [auto-fix]" || true
+          git rm .github/workflows/fix-review-ui.yml FIX_TRIGGER.txt 2>/dev/null || true
+          git add -A
+          git commit -m "Remove one-time UI fix workflow [auto-fix]" || true
+          git push
